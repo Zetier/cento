@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "name": "meridian-mk1-v1.0",
+  "endian": "big",
+  "fill": 0,
+  "real_hw": false,
+  "catalog": "catalog_mk1_v1_0.json",
+  "gadget_set": "DemoRTOS"
+}

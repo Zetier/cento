@@ -1,0 +1,26 @@
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+__pycache__/
+.coverage
+htmlcov/
+local/
+.venv/
+*.pyc
+# agent scratch: specs, plans, and session ledgers stay local; docs/ ships
+.superpowers/
+
+*.egg-info/
+/build/
+/dist/
+
+# prebuilt ctf binary -- build via examples/ex01/ctf/Makefile
+examples/ex01/ctf/vuln
+# ex11's monitor toy -- built by the example itself (or examples/ex11/Makefile)
+examples/ex11/devmon
+
+*.swp
+*.log
+
+# agent worktrees
+.worktrees/

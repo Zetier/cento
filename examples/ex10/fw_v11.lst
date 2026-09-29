@@ -1,0 +1,10 @@
+CTX_RESTORE at 0x40001000, firmware v1.1: the rebuild moved ONE slot, and nobody updated
+the declaration -- ex10's verify layer catches the drift by name. Hand-annotated sidecar for
+fw_v11.bin (big-endian PPC32, one word per line); eyeball against `make disasm`.
+
+  801f0000    lwz   r0, 0x0(r31)
+  7c0803a6    mtlr  r0
+  803f0004    lwz   r1, 0x4(r31)
+  83df004c    lwz   r30, 0x4C(r31)   <- r30 now restores from 0x4C, not 0x50
+  83ff0054    lwz   r31, 0x54(r31)
+  4e800020    blr

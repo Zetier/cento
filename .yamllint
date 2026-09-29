@@ -1,0 +1,9 @@
+# YAML gate config (make lint). The repo's line width is 160; GitHub Actions' `on:` key is a
+# key, not a truthy value; document-start markers are not the house style.
+extends: default
+rules:
+  line-length:
+    max: 160
+  document-start: disable
+  truthy:
+    check-keys: false

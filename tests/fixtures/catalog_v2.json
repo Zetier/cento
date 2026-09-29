@@ -1,0 +1,22 @@
+{
+  "schema": 2,
+  "target": "test_fixture",
+  "gadget_sets": {
+    "DemoAS": {
+      "SYSCALL_TAIL": {
+        "name": "SYSCALL_TAIL",
+        "entry": 1073750016,
+        "stride": 176,
+        "frame_base": "SP",
+        "reentry_safe": true,
+        "needs": {"R30": "syscall object handle -> r3", "R31": "desc array pointer -> r4"},
+        "restores": {
+          "r30": {"reg": "R30", "at": 168, "width": 4, "external": false},
+          "r31": {"reg": "R31", "at": 172, "width": 4, "external": false},
+          "pc": {"reg": "PC", "at": 180, "width": 4, "external": true}
+        },
+        "clobbers": []
+      }
+    }
+  }
+}

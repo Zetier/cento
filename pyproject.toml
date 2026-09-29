@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cento"
+version = "0.2.0"
+description = "Declarative, fail-closed exploit payload construction."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.10"
+authors = [{ name = "Zetier", email = "opensource@zetier.com" }]
+keywords = ["exploit-development", "ctf", "rop", "payload", "binary-exploitation", "pwn", "security", "red-team"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/zetier/cento"
+Repository = "https://github.com/zetier/cento"
+Issues = "https://github.com/zetier/cento/issues"
+
+[project.optional-dependencies]
+verify = ["unicorn>=2.1"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+cento = ["py.typed"]
+
+[tool.ruff]
+extend-exclude = ["examples/*/before.py"]  # authentic PoC style is the exhibit
+line-length = 160
+target-version = "py310"
+src = [".", "src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+
+[tool.mypy]
+strict = true
+
+# The exhibit scripts import their siblings by script directory (refusal.py imports after and
+# enhanced; enhanced.py imports gadgets): real modules at run time, invisible to mypy's
+# package view.
+[[tool.mypy.overrides]]
+module = ["after", "enhanced", "gadgets"]
+ignore_missing_imports = true
+
+# unicorn is the optional, import-guarded [verify] extra (src/cento/verify.py);
+# the gates run without it installed, so don't fail on its absence.
+[[tool.mypy.overrides]]
+module = ["unicorn", "unicorn.*"]
+ignore_missing_imports = true
+
+[tool.pymarkdown]
+# Markdown gate config (make lint). The repo's prose width is 160 with wide tables (md013);
+# the README opens on the logo HTML and AGENTS uses <placeholder> spellings (md033/md041);
+# skills/cento/SKILL.md carries YAML front matter (the extension keeps it out of heading rules).
+extensions.front-matter.enabled = true
+plugins.md013.enabled = false
+plugins.md033.enabled = false
+plugins.md041.enabled = false
+
+[tool.codespell]
+# Spelling gate (make lint). before.py exhibits are style-frozen (authentic PoC voice, typos
+# included); littel/alpah are deliberate-typo teaching tests; fpr is ex04's floating-point-register block; caf is the ascii-refusal
+# fixture's cafe; re-declare is deliberate hyphenation.
+skip = "./.git,./.venv,./dist,./build,./local,./.superpowers,./assets,*/before.py,*.svg"
+ignore-words-list = "littel,alpah,caf,fpr,re-declare"

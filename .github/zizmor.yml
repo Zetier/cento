@@ -1,0 +1,9 @@
+# Audit policy for the workflow gate (make lint). Everything hash-pins except the
+# pypa publisher: a docker action whose container tag IS the git ref -- a SHA ref
+# resolves to a nonexistent image manifest, so it pins by release tag instead.
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "*": hash-pin
+        pypa/gh-action-pypi-publish: ref-pin

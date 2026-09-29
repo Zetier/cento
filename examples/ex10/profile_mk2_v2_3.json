@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "name": "meridian-mk2-v2.3",
+  "endian": "big",
+  "fill": 0,
+  "real_hw": false,
+  "catalog": "catalog_mk2_v2_3.json",
+  "gadget_set": "DemoRTOS"
+}

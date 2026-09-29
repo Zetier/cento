@@ -1,0 +1,54 @@
+$ python3 ex07_guardrails.py
+scene 1: an overlapping placement, undeclared -> CHK-001
+check: 1 error, 0 warnings, 0 pending
+ERROR CHK-001 [pkt.hdr, pkt.trailer]: placement extents overlap without a declared alias  hint: declare intent: region.at(..., over=(other,), why=...)
+fixed with over=/why=: errors = []
+scene 2: a second owner rewrites a live cell -> CHK-008
+check: 1 error, 0 warnings, 0 pending
+ERROR CHK-008 [cfg.boot.limit, cfg.patch.limit]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+waived: errors = []; rewrite_waivers = (RewriteWaiver(region='cfg', offset=4, reason='maintenance override wins over the boot default'),)
+scene 3: a starved hop input under Carry.Clobbered -> CHK-201 at seal()
+seal() raised: CHK-201 [demo.second]: hop 'second' needs R30 (syscall selector -> r3) but it is clobbered  hint: seat the input or fix the upstream transfer
+fixed: seal() passed; second R30 <- scratch.demo.first.r30
+scene 4: aliased cells disagree on shared bytes -> CHK-006
+check: 1 error, 0 warnings, 0 pending
+ERROR CHK-006 [msg.word.magic, msg.lo16.half]: overlapping cells disagree on bytes [0x2,0x4)  hint: aliased cells must agree byte-for-byte; check the overlay arithmetic
+fixed by agreeing: errors = []
+scene 5: auto-placement past max_size -> PlacementError, eagerly
+PlacementError: page: alloc of 0x8 at 0x8 exceeds max_size 0xc
+scene 6: the transport will not carry that byte -- the gadget address itself has NULs
+check: 1 error, 0 warnings, 0 pending
+ERROR CHK-011 [cmd.raw+0x0]: cell bytes contain forbidden transport byte(s) 0x00  hint: the transport will not carry these bytes: pick a different value/address/gadget, or slice around them
+fixed with a string-safe sibling gadget: errors = []
+scene 7: the delivery gates -- finalize() refuses, twice
+refused: finalize() refused: unconfirmed groups [1]
+refused: finalize() refused: unresolved symbols ['probe_addr']
+both gates cleared: finalize() yields ['NORMAL', 'ARM'] -- example 06 (ex06_delivery_plan) walks the full happy path
+waivers are code-reviewable intent: every escape hatch requires a reason
+
+---- scene 7: the machine reads the refusals ----
+artifact (a): check() -> Report, the machine-readable half
+{
+  "error_codes": [],
+  "pending": [],
+  "rewrite_waivers": [
+    [
+      "pkt",
+      8,
+      "hotfix limit supersedes the v1 default (review: MK1-217)"
+    ]
+  ],
+  "warning_codes": []
+}
+check: 0 errors, 0 warnings, 0 pending; 1 waiver on the ledger
+waived rewrite pkt+0x0008: hotfix limit supersedes the v1 default (review: MK1-217)
+artifact (b): the fail-closed path -- the final emit refuses
+emit(final=False) still built 32 bytes -- prototyping is not gated
+refused: final emit refused: check errors:
+check: 1 error, 0 warnings, 0 pending
+ERROR CHK-001 [pkt.hdr, pkt.trailer]: placement extents overlap without a declared alias  hint: declare intent: region.at(..., over=(other,), why=...)
+artifact (c): cento.gate() -- the whole judgment as one CI verdict
+cento.gate(locked) -> True   (green: the job ships; the image emitted cleanly after)
+cento.gate(broken) -> False   (red: the drifted edit cannot merge)
+the whole CI step is one line: sys.exit(0 if cento.gate(layout) else 1)
+named codes are half the story; the report + the refusing final emit are the CI half

@@ -1,0 +1,4 @@
+# Bump deliberately (run make selftest with the new pins in the same change).
+pytest==9.1.1
+ruff==0.16.1
+mypy==2.1.0

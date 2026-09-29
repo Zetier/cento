@@ -1,0 +1,4 @@
+# The sdist ships source only. Setuptools' legacy default template half-ships the
+# suite (tests/test*.py without conftest.py or fixtures/); a suite that cannot run
+# serves nobody, and the repository is the test surface.
+prune tests

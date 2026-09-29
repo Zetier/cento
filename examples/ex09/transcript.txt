@@ -1,0 +1,64 @@
+$ python3 ex09_fake_frame_chain.py
+gadgets:
+  0x40001000: lwz r0, 0x0(r31); mtlr r0; lwz r1, 0x4(r31); lwz r30, 0x50(r31); lwz r31, 0x54(r31); blr
+  0x40002000: mr r3, r30; mr r4, r31; bl demo_syscall; lwz r30, 0x38(r1); lwz r31, 0x3c(r1); lwz r0, 0x44(r1); mtlr r0; addi r1, r1, 0x40; blr
+narrate(): three calls that never happened, one story
+chain stack in heap (carry=Passthru)
+  primitive: R31 = $heap_va
+  hop enter: CtxRestore @ 0x40001000
+    needs R31 <- cell:heap.stack.enter.r31  (context-block pointer (the hijack primitive))
+  hop map_scratch: SysTail @ 0x40002000
+    needs R30 <- cell:heap.stack.enter.r30  (capability word -> r3 (0 = unprivileged))
+    needs R31 <- cell:heap.stack.enter.r31  (arg-block pointer -> r4)
+  hop mint_token: SysTail @ 0x40002000
+    needs R30 <- cell:heap.stack.map_scratch.r30  (capability word -> r3 (0 = unprivileged))
+    needs R31 <- cell:heap.stack.map_scratch.r31  (arg-block pointer -> r4)
+    effect mint_result: supplies session_token
+  hop spend_token: SysTail @ 0x40002000
+    needs R30 <- effect:session_token  (capability word -> r3 (0 = unprivileged))
+    needs R31 <- cell:heap.stack.mint_token.r31  (arg-block pointer -> r4)
+  (finished)
+the fold, hop by hop: where every input comes from
+  map_scratch: R30 <- cell:heap.stack.enter.r30; R31 <- cell:heap.stack.enter.r31
+  mint_token: R30 <- cell:heap.stack.map_scratch.r30; R31 <- cell:heap.stack.map_scratch.r31
+  spend_token: R30 <- effect:session_token; R31 <- cell:heap.stack.mint_token.r31
+heap.stack.mint_token.r30 (stack.mint_token[+0x38]) @ heap+0xD8 [abs 0x402080D8]
+cell: (unset)
+feeds: hop spend_token needs R30 (writeback)
+writeback-by: effect mint_result output session_token (chain stack)
+seal(): green -- every hop's inputs accounted for
+the trap NOT taken: alloc an arg block mid-chain and check() names it
+  CHK-001 [heap.map_args, heap.stack.mint_token]: placement extents overlap without a declared alias
+the forged call stack, as bytes: every word attributed ...
+region heap (base=heap_va, fill=0x00)
+  +0x0000 w4 40002000  [heap.stack.enter.pc] ARM
+  +0x0004 w4 40208060  [heap.stack.enter.sp]
+  +0x0050 w4 00000000  [heap.stack.enter.r30]
+  +0x0054 w4 40208128  [heap.stack.enter.r31]
+  +0x0098 w4 00000000  [heap.stack.map_scratch.r30]
+  +0x009c w4 40208138  [heap.stack.map_scratch.r31]
+  +0x00a4 w4 40002000  [heap.stack.map_scratch.pc]
+  +0x00dc w4 40208148  [heap.stack.mint_token.r31]
+  +0x00e4 w4 40002000  [heap.stack.mint_token.pc]
+  +0x0124 w4 40003000  [heap.stack.spend_token.pc]
+  +0x0128 w4 00000004  [heap.map_args.op]
+  +0x012c w4 40204000  [heap.map_args.a0]
+  +0x0138 w4 00000007  [heap.mint_args.op]
+  +0x0140 w4 402080d8  [heap.mint_args.out]
+  +0x0148 w4 00000009  [heap.spend_args.op]
+  +0x014c w4 40031337  [heap.spend_args.a0]
+... and flat: the frames at heap+0x60..+0x130, a stack that never was
+  0x40208060  00000000 00000000 00000000 00000000
+  0x40208070  00000000 00000000 00000000 00000000
+  0x40208080  00000000 00000000 00000000 00000000
+  0x40208090  00000000 00000000 00000000 40208138
+  0x402080a0  00000000 40002000 00000000 00000000
+  0x402080b0  00000000 00000000 00000000 00000000
+  0x402080c0  00000000 00000000 00000000 00000000
+  0x402080d0  00000000 00000000 00000000 40208148
+  0x402080e0  00000000 40002000 00000000 00000000
+  0x402080f0  00000000 00000000 00000000 00000000
+  0x40208100  00000000 00000000 00000000 00000000
+  0x40208110  00000000 00000000 00000000 00000000
+  0x40208120  00000000 40003000 00000004 40204000
+the fill word at 0x402080d8 is the mint slot: the kernel writes the token there at runtime

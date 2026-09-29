@@ -1,0 +1,28 @@
+# Pre-commit wiring for the make gates -- the Makefile stays the single source of
+# truth (no separate tool pins to drift; AGENTS.md: the gates are the contract).
+# Install:  make setup && pre-commit install --hook-type pre-commit --hook-type pre-push
+# Push's selftest re-runs lint and validate as make prerequisites, so a push is
+# always the whole contract.
+repos:
+  - repo: local
+    hooks:
+      - id: lint
+        name: make lint (the tracked-file lint gate; make help lists the tools)
+        entry: make lint
+        language: system
+        types_or: [python, shell, yaml, markdown, c, json, toml]
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: validate
+        name: make validate (the static-validation gate)
+        entry: make validate
+        language: system
+        types_or: [python, c, shell, json]
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: selftest
+        name: make selftest (the authoritative gate)
+        entry: make selftest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

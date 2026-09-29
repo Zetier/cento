@@ -1,0 +1,70 @@
+# GitLab CI for the cento standalone repository (this directory == the
+# standalone repo root; the file is inert inside the research monorepo, by
+# design).
+#
+# Thin driver over the authoritative local gates: every script line is a repo
+# Makefile target (`make help` lists them), so CI and a local `make` execute
+# the same commands. VERBOSE=1 echoes the recipes into the job log.
+# Kept job-for-job in sync with .github/workflows/ci.yml.
+
+workflow:
+  rules:
+    # Run on merge requests; on branch pushes only when no MR is open for the
+    # branch (avoids duplicate pipelines) -- the branch+MR equivalent of the
+    # GitHub workflow's push + pull_request triggers.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+default:
+  interruptible: true
+  tags:
+    - linux
+    - amd64
+
+variables:
+  VERBOSE: "1"
+
+gates:
+  image: python:${PYTHON_VERSION}
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.10", "3.11", "3.12", "3.13"]
+  script:
+    - make setup PY=python
+    - make selftest PY=python
+    - make smoke-setup PY=python
+    - make smoke-example PY=python
+
+verify-extra:
+  image: python:3.12
+  script:
+    - make verify-setup PY=python
+    - make verify-probe PY=python
+    - make test PY=python
+
+dist-verify:
+  image: python:3.12
+  script:
+    - make setup PY=python
+    - make dist-verify PY=python
+
+dco:
+  image: python:3.12
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - make dco DCO_RANGE=$CI_MERGE_REQUEST_DIFF_BASE_SHA..HEAD
+
+dist:
+  image: python:3.12
+  script:
+    - make dist PY=python
+  artifacts:
+    name: cento-dist
+    paths:
+      - dist/
+    expire_in: 90 days

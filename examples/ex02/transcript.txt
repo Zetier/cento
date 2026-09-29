@@ -1,0 +1,28 @@
+$ python3 ex02_toy_chain.py
+gadgets:
+  0x40001000: lwz r0, 0x0(r31); mtlr r0; lwz r1, 0x4(r31); lwz r30, 0x50(r31); lwz r31, 0x54(r31); blr
+  0x40002000: mr r3, r30; mr r4, r31; bl demo_syscall; lwz r30, 0x38(r1); lwz r31, 0x3c(r1); lwz r0, 0x44(r1); mtlr r0; addi r1, r1, 0x40; blr
+
+narrate(): the hop-by-hop story
+chain demo in scratch (carry=Passthru)
+  primitive: R31 = $scratch_va
+  hop enter: CtxRestore @ 0x40001000
+    needs R31 <- cell:scratch.demo.enter.r31  (context-block pointer (the hijack primitive))
+  hop mint_token: RetTail @ 0x40002000
+    needs R30 <- cell:scratch.demo.enter.r30  (capability word -> r3 (0 = unprivileged; the minted token to spend))
+    needs R31 <- cell:scratch.demo.enter.r31  (arg-block pointer -> r4)
+    cell scratch.demo.mint_token.r30 <- writeback 'boot_token' (by effect mint_token_writeback)
+  hop spend_token: RetTail @ 0x40002000
+    needs R30 <- effect:boot_token  (capability word -> r3 (0 = unprivileged; the minted token to spend))
+    needs R31 <- cell:scratch.demo.mint_token.r31  (arg-block pointer -> r4)
+  (finished)
+
+check(): the whole layout, judged
+check: 0 errors, 0 warnings, 0 pending
+
+explain(): what is this byte?
+scratch.demo.mint_token.r30 (demo.mint_token[+0x38]) @ scratch+0x138 [abs 0x40200138]
+cell: writeback('boot_token') width=4 deliver=NORMAL
+feeds: hop spend_token needs R30 (writeback)
+writeback-by: effect mint_token_writeback output boot_token (chain demo)
+spend_token R30 fed by: effect:boot_token

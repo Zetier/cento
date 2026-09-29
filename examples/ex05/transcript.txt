@@ -1,0 +1,120 @@
+$ python3 before.py
+before tlv: 4d504b5801020030d9ceaebd0001000000080000000100030000000000028000000800005ec0de424d4b2d3100030000000800004141414142424242
+
+$ python3 after.py
+after tlv: 4d504b5801020030d9ceaebd0001000000080000000100030000000000028000000800005ec0de424d4b2d3100030000000800004141414142424242
+
+$ python3 check.py
+byte-for-byte equal: 60 bytes across 1 buffer
+
+$ python3 ex05_computed_cells.py
+---- part 1: a wire image with lazy values ----
+MPKT datagram, before the session key exists
+pending symbols: ['session_key']
+region pkt (base=pkt_base, fill=0x00)
+  +0x0000 w4 4d504b54  [pkt.hdr.magic]
+  +0x0004 w1       01  [pkt.hdr.version]
+  +0x0005 w1       80  [pkt.hdr.flags]
+  +0x0006 w2     ????  [pkt.hdr.body_len]
+  +0x0008 w4 00000001  [pkt.hdr.seq]
+  +0x000c w2     ????  [pkt.hdr.cksum]
+  +0x0010 w4 ????????  [pkt.body.session]
+  +0x0014 w4 48454c4f  [pkt.body.tag]
+  +0x0018 w4 4d4b2d31  [pkt.body.nonce]
+fixup: pkt.hdr.body_len (pkt+0x0006 w2) awaits session_key
+fixup: pkt.hdr.cksum (pkt+0x000c w2) awaits session_key
+fixup: pkt.body.session (pkt+0x0010 w4) awaits session_key
+
+bind session_key -> emit again, byte-complete
+region pkt (base=pkt_base, fill=0x00)
+  +0x0000 w4 4d504b54  [pkt.hdr.magic]
+  +0x0004 w1       01  [pkt.hdr.version]
+  +0x0005 w1       80  [pkt.hdr.flags]
+  +0x0006 w2     000c  [pkt.hdr.body_len]
+  +0x0008 w4 00000001  [pkt.hdr.seq]
+  +0x000c w2     b42c  [pkt.hdr.cksum]
+  +0x0010 w4 5ec0de01  [pkt.body.session]
+  +0x0014 w4 48454c4f  [pkt.body.tag]
+  +0x0018 w4 4d4b2d31  [pkt.body.nonce]
+fixups now: []
+image (28 bytes): 4d504b540180000c00000001b42c00005ec0de0148454c4f4d4b2d31
+
+---- part 2: records that cannot drift ----
+scene 1: before the token binds -- fixups name every waiting cell
+pending symbols: ['session_token']
+region msg (base=msg_base, fill=0x00)
+  +0x0000 w4 4d504b58  [msg.hdr.magic]
+  +0x0004 w2     0102  [msg.hdr.msg_type]
+  +0x0006 w2     ????  [msg.hdr.total_len]
+  +0x0008 w4 ????????  [msg.hdr.crc]
+  +0x000c w2     0001  [msg.recs[0].rtype]
+  +0x0010 w2     0008  [msg.recs[0].payload_len]
+  +0x0012 w2     0000  [msg.recs[0].resv]
+  +0x0014 w4 00010003  [msg.recs[0].pay0]
+  +0x0018 w4 00000000  [msg.recs[0].pay1]
+  +0x001c w2     0002  [msg.recs[1].rtype]
+  +0x001e w2     8000  [msg.recs[1].flags]
+  +0x0020 w2     ????  [msg.recs[1].payload_len]
+  +0x0022 w2     0000  [msg.recs[1].resv]
+  +0x0024 w4 ????????  [msg.recs[1].pay0]
+  +0x0028 w4 4d4b2d31  [msg.recs[1].pay1]
+  +0x002c w2     0003  [msg.recs[2].rtype]
+  +0x0030 w2     0008  [msg.recs[2].payload_len]
+  +0x0032 w2     0000  [msg.recs[2].resv]
+  +0x0034 w4 41414141  [msg.recs[2].pay0]
+  +0x0038 w4 42424242  [msg.recs[2].pay1]
+fixup: msg.hdr.total_len (msg+0x0006 w2) awaits session_token
+fixup: msg.hdr.crc (msg+0x0008 w4) awaits session_token
+fixup: msg.recs[1].payload_len (msg+0x0020 w2) awaits session_token
+fixup: msg.recs[1].pay0 (msg+0x0024 w4) awaits session_token
+
+scene 2: bind, emit, prove -- CHK-005 pins the CRC to a fresh recompute
+image (60 bytes): 4d504b5801020030d9ceaebd0001000000080000000100030000000000028000000800005ec0de424d4b2d3100030000000800004141414142424242
+lengths, all derived: total_len=0x30, per-record payload_len=[8, 8, 8]
+crc32_mpeg2 recomputed over msg[0xc:0x3c] == 0xd9ceaebd; check() errors = []
+
+scene 3: the fuzz case -- record 2's length lies about its payload, ON PURPOSE
+refused: final emit refused: check errors:
+check: 1 error, 0 warnings, 0 pending
+ERROR CHK-005 [msg.hdr.crc]: reduce crc32_mpeg2 = 0x8970f7d2, expected 0xd9ceaebd  hint: fix the expectation or the span contents
+crafted image: 4d504b58010200308970f7d20001000000080000000100030000000000028000000800005ec0de424d4b2d3100030000004000004141414142424242
+record 2 claims 0x40 payload bytes; its span holds 8.
+total_len=0x30 and crc=0x8970f7d2 stay true to the wire bytes:
+only the ONE field we overrode lies -- the parser's length-vs-CRC disagreement is the testcase.
+
+---- part 3: split relocations from one symbol ----
+step 1: declare the page from one symbol; emit BEFORE the leak exists
+pending symbols: ['mk2_lib_base']
+region cfg (base=cfg_va, fill=0x00)
+  +0x0000 w4 ????????  [cfg.recs.handler_abs]
+  +0x0004 w4 ????????  [cfg.recs.handler_rel]
+  +0x0010 w2     3c0c  [cfg.lui.op]
+  +0x0012 w2     ????  [cfg.lui.imm]
+  +0x0014 w2     258c  [cfg.addiu.op]
+  +0x0016 w2     ????  [cfg.addiu.imm]
+fixup: cfg.recs.handler_abs (cfg+0x0000 w4) awaits mk2_lib_base
+fixup: cfg.recs.handler_rel (cfg+0x0004 w4) awaits mk2_lib_base
+fixup: cfg.lui.imm (cfg+0x0012 w2) awaits mk2_lib_base
+fixup: cfg.addiu.imm (cfg+0x0016 w2) awaits mk2_lib_base
+refused: final emit refused: layout-wide pending symbols ['mk2_lib_base']
+
+step 2: the leak arrives (base=0x40017000); bind, emit complete
+region cfg (base=cfg_va, fill=0x00)
+  +0x0000 w4 40018a50  [cfg.recs.handler_abs]
+  +0x0004 w4 ffe14a4c  [cfg.recs.handler_rel]
+  +0x0010 w2     3c0c  [cfg.lui.op]
+  +0x0012 w2     4002  [cfg.lui.imm]
+  +0x0014 w2     258c  [cfg.addiu.op]
+  +0x0016 w2     8a50  [cfg.addiu.imm]
+fixups now: []
+handler_abs = 0x40018a50 (target 0x40018a50)
+handler_rel = 0xffe14a4c = target - (cfg_va+4), wrapped: a negative displacement
+  proof: (cfg_va+4 + handler_rel) mod 2^32 = 0x40018a50
+veneer lands at 0x40018a50
+
+step 3: the drift bug, reproduced -- the same page built with hi16
+lo16(target) = 0x8a50 (>= 0x8000: the signed addiu SUBTRACTS 0x75b0)
+hi16(target) = 0x4001   <- the buggy lui immediate
+ha16(target) = 0x4002   <- hi16 plus the carry
+buggy veneer lands at 0x40008a50 -- 0x10000 short of the handler
+one symbol, four derived cells: the halves cannot drift apart, because neither is stored

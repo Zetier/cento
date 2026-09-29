@@ -1,0 +1,77 @@
+{
+  "schema": 2,
+  "target": "meridian-mk2-v2.3",
+  "gadget_sets": {
+    "DemoRTOS": {
+      "CTX_RESTORE": {
+        "name": "CTX_RESTORE",
+        "entry": 4198400,
+        "stride": 16,
+        "frame_base": "R4",
+        "reentry_safe": false,
+        "needs": {
+          "R4": "context pointer (the corrupted callback)"
+        },
+        "restores": {
+          "pc": {
+            "reg": "PC",
+            "at": 0,
+            "width": 4,
+            "external": false
+          },
+          "sp": {
+            "reg": "SP",
+            "at": 4,
+            "width": 4,
+            "external": false
+          },
+          "r16": {
+            "reg": "R16",
+            "at": 8,
+            "width": 4,
+            "external": false
+          },
+          "r17": {
+            "reg": "R17",
+            "at": 12,
+            "width": 4,
+            "external": false
+          }
+        },
+        "clobbers": []
+      },
+      "SYSCALL_TAIL": {
+        "name": "SYSCALL_TAIL",
+        "entry": 4201004,
+        "stride": 32,
+        "needs": {
+          "R16": "capability word -> $a0 (0 = unprivileged)",
+          "R17": "arg-block pointer -> $a1"
+        },
+        "restores": {
+          "r16": {
+            "reg": "R16",
+            "at": 20,
+            "width": 4,
+            "external": false
+          },
+          "r17": {
+            "reg": "R17",
+            "at": 24,
+            "width": 4,
+            "external": false
+          },
+          "pc": {
+            "reg": "PC",
+            "at": 28,
+            "width": 4,
+            "external": false
+          }
+        },
+        "clobbers": [],
+        "frame_base": "SP",
+        "reentry_safe": true
+      }
+    }
+  }
+}

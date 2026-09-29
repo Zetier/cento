@@ -1,0 +1,77 @@
+{
+  "schema": 2,
+  "target": "meridian-mk1-v1.0",
+  "gadget_sets": {
+    "DemoRTOS": {
+      "CTX_RESTORE": {
+        "name": "CTX_RESTORE",
+        "entry": 1073745920,
+        "stride": 88,
+        "frame_base": "R31",
+        "reentry_safe": false,
+        "needs": {
+          "R31": "context pointer (the hijack primitive)"
+        },
+        "restores": {
+          "pc": {
+            "reg": "PC",
+            "at": 0,
+            "width": 4,
+            "external": false
+          },
+          "sp": {
+            "reg": "SP",
+            "at": 4,
+            "width": 4,
+            "external": false
+          },
+          "r30": {
+            "reg": "R30",
+            "at": 80,
+            "width": 4,
+            "external": false
+          },
+          "r31": {
+            "reg": "R31",
+            "at": 84,
+            "width": 4,
+            "external": false
+          }
+        },
+        "clobbers": []
+      },
+      "SYSCALL_TAIL": {
+        "name": "SYSCALL_TAIL",
+        "entry": 1073750016,
+        "stride": 64,
+        "needs": {
+          "R30": "capability word -> r3 (0 = unprivileged)",
+          "R31": "arg-block pointer -> r4"
+        },
+        "restores": {
+          "r30": {
+            "reg": "R30",
+            "at": 56,
+            "width": 4,
+            "external": false
+          },
+          "r31": {
+            "reg": "R31",
+            "at": 60,
+            "width": 4,
+            "external": false
+          },
+          "pc": {
+            "reg": "PC",
+            "at": 68,
+            "width": 4,
+            "external": true
+          }
+        },
+        "clobbers": [],
+        "frame_base": "SP",
+        "reentry_safe": true
+      }
+    }
+  }
+}

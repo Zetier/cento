@@ -1,0 +1,22 @@
+# C gate config (make validate). The exhibit C sources are deliberately vulnerable victim
+# programs: the gate hunts bugs the exhibits did NOT intend, and a finding an exhibit DOES
+# intend is waived in the file with NOLINT(rule) and the reason on the same line.
+#
+# Disabled here, with reasons:
+# - DeprecatedOrUnsafeBufferHandling: Annex-K *_s zealotry (memcpy/memset/sscanf are the
+#   exhibits' authentic vocabulary; the bounds bugs the gate should catch are covered by the
+#   analyzer's real checks).
+# - cert-err33-c: unchecked printf/setvbuf returns are stdio noise, not exhibit findings.
+Checks: >
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -cert-err33-c
+CheckOptions:
+  # _GNU_SOURCE is the documented feature-test macro spelling; the cert aliases carry their
+  # own option namespaces, so the allowance is stated three times.
+  bugprone-reserved-identifier.AllowedIdentifiers: _GNU_SOURCE
+  cert-dcl37-c.AllowedIdentifiers: _GNU_SOURCE
+  cert-dcl51-cpp.AllowedIdentifiers: _GNU_SOURCE
+WarningsAsErrors: "*"

@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "name": "test_target",
+  "endian": "big",
+  "fill": 0,
+  "real_hw": false,
+  "catalog": "catalog_v2.json",
+  "gadget_set": "DemoAS"
+}

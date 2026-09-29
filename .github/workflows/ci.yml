@@ -1,0 +1,109 @@
+# CI for the cento standalone repository (this directory == the standalone
+# repo root; the workflow is inert inside the research monorepo, by design).
+#
+# Thin driver over the authoritative local gates: every step is a repo
+# Makefile target (`make help` lists them), so CI and a local `make` execute
+# the same commands. VERBOSE=1 echoes the recipes into the job log.
+# Kept job-for-job in sync with .gitlab-ci.yml.
+name: ci
+
+on:
+  push:
+    branches: [main]  # PR branches run via pull_request; unfiltered push would double-run them
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERBOSE: "1"
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: gate tools
+        run: make setup PY=python
+      - name: local gates (lint + validate + tests + selftest)
+        run: make selftest PY=python
+      - name: installed-package smoke (non-editable install, empty cwd)
+        run: make smoke-setup PY=python
+      - name: example smoke (repo script against the installed package)
+        run: make smoke-example PY=python
+
+  verify-extra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+      - name: install with the [verify] extra
+        run: make verify-setup PY=python
+      - name: unicorn availability probe
+        run: make verify-probe PY=python
+      - name: pytest (with unicorn installed)
+        run: make test PY=python
+
+  dist-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+      - name: gate tools
+        run: make setup PY=python
+      - name: full wheel-install verification (clean venv)
+        run: make dist-verify PY=python
+
+  dco:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: signed-off commits only
+        run: make dco DCO_RANGE=${{ github.event.pull_request.base.sha }}..HEAD
+
+  dist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+      - name: build the sdist and wheel
+        run: make dist PY=python
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4  # v5
+        with:
+          name: cento-dist
+          path: dist/
+          if-no-files-found: error

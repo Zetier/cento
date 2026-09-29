@@ -1,0 +1,23 @@
+$ python3 before.py
+before wake: 4d4b574b010200010000000440203e100000000300000fa000000007000000010000000200000000454e4452
+
+$ python3 ex14_port_a_script.py
+step 1: run the legacy script, capture its emission as the golden reference
+  captured 44 bytes: 4d4b574b010200010000000440203e100000000300000fa000000007000000010000000200000000454e4452
+
+step 2: wrap the bytes in ONE raw region -- same bytes, now with named cells
+  golden: OK -- image == reference (44 bytes)
+
+step 3: carve a typed header over the first 0x10 -- the tail stays a raw dump
+  golden: OK -- image == reference (44 bytes)
+
+step 4: the baked handler address becomes a symbol; the value now cites its source
+  golden: OK -- image == reference (44 bytes)
+
+step 5a: the payoff -- edits go behind the gate; the old offset-poke idiom is refused by name
+  refused: ERROR CHK-008 [rec.hdr.wake_slot, rec.raw+0x8]: cell rewritten by a different owner (last-writer-wins)  hint: if intended: layout.allow_rewrite(cell, reason=...); else fix the collision
+
+step 5b: and golden names semantic drift BY OWNER, not as a mystery byte
+  golden: DIVERGED -- first divergent run at +0x0007 in rec.hdr.flags
+    +0x0007 len 1 expected 01, got 03  [rec.hdr.flags]
+  (rec.hdr.flags, by name: the LOUD bit before.py's comment warns about -- one byte, one owner, zero archaeology)

