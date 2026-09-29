@@ -22,8 +22,7 @@ class ResolveError(CentoError):
     """Value cannot be resolved: awaiting symbols, reduce cycles, or an unknown reducer.
 
     Refusals carry their data: when the refusing surface had a fill-padded draft in hand
-    (Region.image's draft read), it rides as .partial -- the bytes the removed partial= flag
-    used to return. Raisers without a buffer leave it None."""
+    (Region.image's draft read), it rides as .partial. Raisers without a buffer leave it None."""
 
     def __init__(self, message: str, *, partial: bytes | None = None) -> None:
         super().__init__(message)

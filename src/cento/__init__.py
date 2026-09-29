@@ -46,7 +46,7 @@ import cento.regions
 import cento.verify
 import cento.views
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 # The intentional export set (alphabetized): every public class/function/constant the
 # facade re-exports below, and nothing else -- no submodules, no import artifacts.

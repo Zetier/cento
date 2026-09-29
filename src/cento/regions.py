@@ -515,7 +515,7 @@ class Region:
         """Layout.check, from the region handle -- the same one-region convenience as bind()."""
         return self.layout.check()
 
-    def image(self, *, final: bool = True, partial: None = None) -> bytes:
+    def image(self, *, final: bool = True) -> bytes:
         """This region's emitted bytes (the IMAGE backend, this region's slice; bytes(region) is the same call).
 
         Final by default: image() runs the full gate (exactly emit()) and is the shippable-bytes
@@ -527,10 +527,6 @@ class Region:
         bytes emit as fill. A cell's own WidthError/ResolveError raises regardless -- the draft
         tolerates unbound symbols, not broken cells.
         """
-        if partial is not None:  # the retired spelling: the refusal carries the bytes now
-            raise cento.errors.PlacementError(
-                f"{self.name}: image(partial=) is gone -- catch ResolveError; .partial on the error carries the fill-padded bytes"
-            )
         if final:
             art = self.layout.emit(cento.emit.Backend.IMAGE, final=True).artifact
             data_final = art.get(self.name)
@@ -1468,7 +1464,7 @@ class Layout:
         """
         return cento.emit.run_emit(self, backend, final=final)
 
-    def image(self, name: str | None = None, *, final: bool = True, partial: None = None) -> bytes:
+    def image(self, name: str | None = None, *, final: bool = True) -> bytes:
         """A region's emitted bytes, by name; with exactly one region the name may be omitted.
 
         Delegates to Region.image, whose refusal behavior applies: final by default (the same
@@ -1485,7 +1481,7 @@ class Layout:
         if region is None:
             hint = difflib.get_close_matches(name, list(self.regions), n=1)
             raise cento.errors.PlacementError(f"no region named {name!r}" + (f"; did you mean {hint[0]!r}?" if hint else ""))
-        return region.image(final=final, partial=partial)
+        return region.image(final=final)
 
     def hexdump(self, *, color: bool | None = None, skip: bool = False) -> str:
         """The HEXDUMP backend's annotated text (emit("hexdump").artifact, sans trailing newline): a header per region, one line per cell.

@@ -64,6 +64,9 @@ manifest's abi block carries the facts; the chain row is a join key, not a recor
 - Every refusal is a named, greppable teaching error (CHK-* codes in checks; PlacementError /
   ResolveError / EmitError elsewhere) that says what to do instead. Existing codes keep their
   meaning; new checks get new codes.
+- The published API is backwards compatible from 0.2.0: no breaking changes without a major
+  version. A retired spelling keeps working as an error that names its replacement, never a
+  silent removal.
 - Determinism is tested: two identical builds produce byte-identical reports. No shared module
   state -- the Layout object is the isolation unit (cento.region() makes a FRESH layout per call).
   Set-once conveniences stay object-scoped: a Target profile (JSON file or inline dict) carries

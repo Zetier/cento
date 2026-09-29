@@ -1,4 +1,5 @@
-<p align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg"><img src="assets/logo.svg" alt="cento logo" width="50%"></picture></p>
+<!-- Generated from README.md by config/gen_pypi_readme.py: edit the source, then regenerate. -->
+<p align="center"><img src="https://raw.githubusercontent.com/zetier/cento/main/assets/logo.svg" alt="cento logo" width="360"></p>
 
 # cento
 
@@ -99,13 +100,13 @@ EmitError: final emit refused: layout-wide pending symbols ['libc_base']
 
 ## When the exploit changes
 
-A three-word chain fits in anyone's head. The value of declarations shows when the payload is larger and changes over time. [examples/ex00](examples/ex00/)
+A three-word chain fits in anyone's head. The value of declarations shows when the payload is larger and changes over time. [examples/ex00](https://github.com/zetier/cento/tree/main/examples/ex00/)
 makes this concrete with a practical exploit payload: a chain of fake stack frames stored in the heap, entered through a 16-byte overflow. Built once by hand
-([before.py](examples/ex00/before.py)), then declared with cento ([after.py](examples/ex00/after.py)): the same bytes.
+([before.py](https://github.com/zetier/cento/blob/main/examples/ex00/before.py)), then declared with cento ([after.py](https://github.com/zetier/cento/blob/main/examples/ex00/after.py)): the same bytes.
 
 The declarations pay off when the exploit grows. Suppose the chain needs a setuid(0) frame ahead of the shell frame. By hand, that is fresh offset arithmetic
 and every dependent address re-checked; before.py's own comments warn about exactly this. In the declared version the edit is one allocation and two
-re-links; ex00's [refusal.py](examples/ex00/refusal.py) performs exactly this edit:
+re-links; ex00's [refusal.py](https://github.com/zetier/cento/blob/main/examples/ex00/refusal.py) performs exactly this edit:
 
 ```text
 slab before: stdin@+0x00  stdout@+0x40  shell@+0x80  sh@+0xa8
@@ -117,14 +118,14 @@ the whole edit: one alloc, two re-links; every address above derived
 The new frame is appended in storage and spliced into the execution order by its links; nothing already placed moves, so nothing is recomputed.
 
 The insertion may also break a rule that is easy to forget: the x86-64 ABI keeps the stack pointer 16-byte aligned at every call site, but adding an 8-byte
-frame breaks alignment at the next call. [enhanced.py](examples/ex00/enhanced.py) rebuilds the same payload as a checked chain and reports the regression at
+frame breaks alignment at the next call. [enhanced.py](https://github.com/zetier/cento/blob/main/examples/ex00/enhanced.py) rebuilds the same payload as a checked chain and reports the regression at
 build time, before anything runs on a target:
 
 ```text
 ERROR CHK-207 [frames.setuid, SetuidCall]: SetuidCall uses entry_sp_mod=8, but this position in the chain requires entry_sp_mod=0 (SP % 16 at entry)
 ```
 
-The complete run is checked in at [examples/ex00/transcript.txt](examples/ex00/transcript.txt).
+The complete run is checked in at [examples/ex00/transcript.txt](https://github.com/zetier/cento/blob/main/examples/ex00/transcript.txt).
 
 ## Features
 
@@ -139,7 +140,7 @@ The complete run is checked in at [examples/ex00/transcript.txt](examples/ex00/t
 - **Checked chains** -- build-time proof that gadget inputs are produced and alignment holds.
 - **Delivery plans** -- the arming write ships last, after everything is staged; every step is ledgered.
 - **Cycle pads** -- `cycle`/`cycle_find` match pwntools `cyclic(n=4)` output, pinned by known-answer tests.
-- **pwntools and ropper interop** -- the tube does I/O; ropper finds become declarations ([ex01](examples/ex01/)).
+- **pwntools and ropper interop** -- the tube does I/O; ropper finds become declarations ([ex01](https://github.com/zetier/cento/tree/main/examples/ex01/)).
 - **Emulation** -- `[verify]` runs gadget bytes under unicorn; symbolic entries need an absolute build.
 
 ## Supported architectures
@@ -148,15 +149,15 @@ The layout machinery (regions, views, symbols, delivery plans) is architecture-n
 Target profile.
 
 - **x86-64** -- `cento.abi.X86_64`, the default; the 16-byte stack rule is judged at build time (CHK-207).
-- **AArch64** -- `cento.abi.AARCH64`: declare widths `cento.u64`; SP faults on misalignment ([ex12](examples/ex12/)).
-- **ARM32** -- `cento.abi.ARM32`: Thumb gadget entries keep their low bit set ([ex13](examples/ex13/)).
-- **PPC32-BE** -- `cento.abi.PPC32`: declare `endian="big"` or let a Target profile carry it ([ex02](examples/ex02/)).
+- **AArch64** -- `cento.abi.AARCH64`: declare widths `cento.u64`; SP faults on misalignment ([ex12](https://github.com/zetier/cento/tree/main/examples/ex12/)).
+- **ARM32** -- `cento.abi.ARM32`: Thumb gadget entries keep their low bit set ([ex13](https://github.com/zetier/cento/tree/main/examples/ex13/)).
+- **PPC32-BE** -- `cento.abi.PPC32`: declare `endian="big"` or let a Target profile carry it ([ex02](https://github.com/zetier/cento/tree/main/examples/ex02/)).
 
-The tutorial's fictional Meridian MK-2 ([ex05](examples/ex05/), [ex10](examples/ex10/)) exercises MIPS32 catalog geometry (frame stride and an
+The tutorial's fictional Meridian MK-2 ([ex05](https://github.com/zetier/cento/tree/main/examples/ex05/), [ex10](https://github.com/zetier/cento/tree/main/examples/ex10/)) exercises MIPS32 catalog geometry (frame stride and an
 inside-the-frame pc slot) as pure catalog data; there is no `cento.abi` MIPS module and no MIPS verify executor.
 
 Porting cento to a new architecture is a welcome contribution: an ABI module is a small, reviewable data declaration;
-[docs/porting-an-abi.md](docs/porting-an-abi.md), written from the AArch64 port, walks the five moves.
+[docs/porting-an-abi.md](https://github.com/zetier/cento/blob/main/docs/porting-an-abi.md), written from the AArch64 port, walks the five moves.
 
 ## For teams
 
@@ -177,21 +178,21 @@ from ex00 and ex14, they form a tutorial against one fictional product family, t
 
 | Example | Summary |
 |---|---|
-| [`ex00`](examples/ex00/) (before/after) | one practical exploit payload built by hand, as declarations, and as a checked chain; `check.py` confirms all three byte-identical, `refusal.py` grows it ([transcript](examples/ex00/transcript.txt)) |
-| [`ex01_find_your_offset`](examples/ex01/) | a pwntools-to-cento reference, the `cycle()`/`cycle_find()` workflow, and a textbook ret2libc mapped 1:1 ([transcript](examples/ex01/transcript.txt)); `ctf/` runs it end to end ([walkthrough](examples/ex01/ctf/WALKTHROUGH.md)) |
-| [`ex02_toy_chain`](examples/ex02/) | a checked gadget chain on real PPC32; the dataflow check traces a syscall return into a later gadget's input ([transcript](examples/ex02/transcript.txt)) |
-| [`ex03_local_ret2win`](examples/ex03/) | compile a local x86-64 test binary (cc required), overflow it, and land win() |
-| [`ex04_qemu_ret2win`](examples/ex04/) | a big-endian PPC32 victim under qemu-ppc, with the crash address read from the gdb stub |
-| [`ex05_computed_cells`](examples/ex05/) | length and CRC fields computed from the bytes they describe; a deliberately wrong value is refused (CHK-005) ([transcript](examples/ex05/transcript.txt)) |
-| [`ex06_delivery_plan`](examples/ex06/) | ordered, trigger-last delivery; a leak arriving mid-delivery invalidates and re-yields the affected rows ([transcript](examples/ex06/transcript.txt)) |
-| [`ex07_guardrails`](examples/ex07/) | seven planted mistakes, seven named refusals, and the CI interface (`to_json`, `cento.gate`) ([transcript](examples/ex07/transcript.txt)) |
-| [`ex08_borrowed_structures`](examples/ex08/) | structures the target parses: a forged heap chunk, a forged vtable, a patched flash record ([transcript](examples/ex08/transcript.txt)) |
-| [`ex09_fake_frame_chain`](examples/ex09/) | a forged call stack in the heap; a runtime value threaded from one frame to the next ([transcript](examples/ex09/transcript.txt)) |
-| [`ex10_provenance`](examples/ex10/) | gadget catalogs and device profiles; catalog drift caught (CHK-301) and gadget bytes verified under an emulator (CHK-304) ([transcript](examples/ex10/transcript.txt)) |
-| [`ex11_the_thrower`](examples/ex11/) | one `DeliveryPlan` delivered through a stdlib pipe and through a pwntools `process()`, about 15 lines each |
-| [`ex12_aarch64_chain`](examples/ex12/) | an AArch64 chain: ldp/ret frames, a csu-style call, and the hardware SP-alignment rule refused at build time (CHK-207) ([transcript](examples/ex12/transcript.txt)) |
-| [`ex13_arm32_chain`](examples/ex13/) | an ARM32 chain: pop-to-pc frames that abut with no aliasing, and a Thumb gadget's entry carrying bit 0 ([transcript](examples/ex13/transcript.txt)) |
-| [`ex14_port_a_script`](examples/ex14/) | porting an existing script: its output captured as golden bytes (`cento.golden`), one raw region, typed views carved in step by step; drift is named by cell owner ([transcript](examples/ex14/transcript.txt)) |
+| [`ex00`](https://github.com/zetier/cento/tree/main/examples/ex00/) (before/after) | one practical exploit payload built by hand, as declarations, and as a checked chain; `check.py` confirms all three byte-identical, `refusal.py` grows it ([transcript](https://github.com/zetier/cento/blob/main/examples/ex00/transcript.txt)) |
+| [`ex01_find_your_offset`](https://github.com/zetier/cento/tree/main/examples/ex01/) | a pwntools-to-cento reference, the `cycle()`/`cycle_find()` workflow, and a textbook ret2libc mapped 1:1 ([transcript](https://github.com/zetier/cento/blob/main/examples/ex01/transcript.txt)); `ctf/` runs it end to end ([walkthrough](https://github.com/zetier/cento/blob/main/examples/ex01/ctf/WALKTHROUGH.md)) |
+| [`ex02_toy_chain`](https://github.com/zetier/cento/tree/main/examples/ex02/) | a checked gadget chain on real PPC32; the dataflow check traces a syscall return into a later gadget's input ([transcript](https://github.com/zetier/cento/blob/main/examples/ex02/transcript.txt)) |
+| [`ex03_local_ret2win`](https://github.com/zetier/cento/tree/main/examples/ex03/) | compile a local x86-64 test binary (cc required), overflow it, and land win() |
+| [`ex04_qemu_ret2win`](https://github.com/zetier/cento/tree/main/examples/ex04/) | a big-endian PPC32 victim under qemu-ppc, with the crash address read from the gdb stub |
+| [`ex05_computed_cells`](https://github.com/zetier/cento/tree/main/examples/ex05/) | length and CRC fields computed from the bytes they describe; a deliberately wrong value is refused (CHK-005) ([transcript](https://github.com/zetier/cento/blob/main/examples/ex05/transcript.txt)) |
+| [`ex06_delivery_plan`](https://github.com/zetier/cento/tree/main/examples/ex06/) | ordered, trigger-last delivery; a leak arriving mid-delivery invalidates and re-yields the affected rows ([transcript](https://github.com/zetier/cento/blob/main/examples/ex06/transcript.txt)) |
+| [`ex07_guardrails`](https://github.com/zetier/cento/tree/main/examples/ex07/) | seven planted mistakes, seven named refusals, and the CI interface (`to_json`, `cento.gate`) ([transcript](https://github.com/zetier/cento/blob/main/examples/ex07/transcript.txt)) |
+| [`ex08_borrowed_structures`](https://github.com/zetier/cento/tree/main/examples/ex08/) | structures the target parses: a forged heap chunk, a forged vtable, a patched flash record ([transcript](https://github.com/zetier/cento/blob/main/examples/ex08/transcript.txt)) |
+| [`ex09_fake_frame_chain`](https://github.com/zetier/cento/tree/main/examples/ex09/) | a forged call stack in the heap; a runtime value threaded from one frame to the next ([transcript](https://github.com/zetier/cento/blob/main/examples/ex09/transcript.txt)) |
+| [`ex10_provenance`](https://github.com/zetier/cento/tree/main/examples/ex10/) | gadget catalogs and device profiles; catalog drift caught (CHK-301) and gadget bytes verified under an emulator (CHK-304) ([transcript](https://github.com/zetier/cento/blob/main/examples/ex10/transcript.txt)) |
+| [`ex11_the_thrower`](https://github.com/zetier/cento/tree/main/examples/ex11/) | one `DeliveryPlan` delivered through a stdlib pipe and through a pwntools `process()`, about 15 lines each |
+| [`ex12_aarch64_chain`](https://github.com/zetier/cento/tree/main/examples/ex12/) | an AArch64 chain: ldp/ret frames, a csu-style call, and the hardware SP-alignment rule refused at build time (CHK-207) ([transcript](https://github.com/zetier/cento/blob/main/examples/ex12/transcript.txt)) |
+| [`ex13_arm32_chain`](https://github.com/zetier/cento/tree/main/examples/ex13/) | an ARM32 chain: pop-to-pc frames that abut with no aliasing, and a Thumb gadget's entry carrying bit 0 ([transcript](https://github.com/zetier/cento/blob/main/examples/ex13/transcript.txt)) |
+| [`ex14_port_a_script`](https://github.com/zetier/cento/tree/main/examples/ex14/) | porting an existing script: its output captured as golden bytes (`cento.golden`), one raw region, typed views carved in step by step; drift is named by cell owner ([transcript](https://github.com/zetier/cento/blob/main/examples/ex14/transcript.txt)) |
 
 ## Scope
 
@@ -199,16 +200,16 @@ cento is built for authorized security work: CTFs, red-team engagements, and vul
 
 ## Maintenance & stability
 
-cento is maintained by [Zetier](https://github.com/zetier). Report security issues privately to <security@zetier.com> (see [SECURITY.md](SECURITY.md));
+cento is maintained by [Zetier](https://github.com/zetier). Report security issues privately to <security@zetier.com> (see [SECURITY.md](https://github.com/zetier/cento/blob/main/SECURITY.md));
 everything else goes to the [issue tracker](https://github.com/zetier/cento/issues).
 
 Pre-1.0, the public API may change between minor versions; breaking changes are called out in commit messages and release notes.
 
 ## License & contributing
 
-Apache 2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache 2.0; see [LICENSE](https://github.com/zetier/cento/blob/main/LICENSE) and [NOTICE](https://github.com/zetier/cento/blob/main/NOTICE).
 
-Contributions require a Developer Certificate of Origin sign-off (`git commit -s`), enforced in CI; [CONTRIBUTING.md](CONTRIBUTING.md) covers the gates, the
+Contributions require a Developer Certificate of Origin sign-off (`git commit -s`), enforced in CI; [CONTRIBUTING.md](https://github.com/zetier/cento/blob/main/CONTRIBUTING.md) covers the gates, the
 sign-off and what it certifies, and third-party code. `pre-commit install --hook-type pre-commit --hook-type pre-push` wires the gates into git: auto-fixing lint and
 static validation at commit (fixes land unstaged for review), the full `make selftest` (tests included) at push.
 

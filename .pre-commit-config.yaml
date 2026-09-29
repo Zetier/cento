@@ -7,7 +7,7 @@ repos:
   - repo: local
     hooks:
       - id: lint
-        name: make lint (the tracked-file lint gate; make help lists the tools)
+        name: make lint (auto-fix, then the tracked-file lint gate)
         entry: make lint
         language: system
         types_or: [python, shell, yaml, markdown, c, json, toml]

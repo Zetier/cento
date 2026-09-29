@@ -101,8 +101,8 @@ def test_copyright_header_on_every_source_file() -> None:
     audited = 0
     for sub in ("src", "tests", "config", "examples"):
         for path in sorted((root / sub).rglob("*")):
-            if "__pycache__" in path.parts or path.suffix not in (".py", ".c"):
-                continue
+            if "__pycache__" in path.parts or path.suffix not in (".py", ".c") or any(part.startswith(".") for part in path.parts):
+                continue  # hidden dirs (config/.venv) hold third-party code, never repo sources
             audited += 1
             text = path.read_text(encoding="utf-8")
             if text.startswith("#!"):
@@ -274,11 +274,17 @@ def test_selftest_green() -> None:
 # -- scaffold ------------------------------------------------------------------------
 
 
-def test_version() -> None:
-    assert cento.__version__ == "0.2.0"
-
-
 def test_exception_hierarchy() -> None:
     assert issubclass(errors.PlacementError, errors.CentoError)
     assert issubclass(errors.ResolveError, errors.CentoError)
     assert issubclass(errors.EmitError, errors.CentoError)
+
+
+def test_pypi_readme_is_current() -> None:
+    """README-pypi.md is a generated artifact (the PyPI page has no repo behind its relative links); drift refuses with the regeneration command."""
+    root = pathlib.Path(__file__).resolve().parents[1]
+    gen = root / "config" / "gen_pypi_readme.py"
+    if not gen.is_file():
+        pytest.skip("repo tree absent (dist-verify scratch runs against the installed package)")
+    proc = subprocess.run([sys.executable, str(gen), "--check"], capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stderr

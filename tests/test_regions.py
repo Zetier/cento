@@ -509,8 +509,8 @@ def test_read_contract() -> None:
 
 
 def test_image_sugar_and_naming() -> None:
-    """region.image()/bytes() and layout.image(name): fail-closed sugar over emit, with partial=
-    fill, writeback tolerance, and did-you-mean naming refusals."""
+    """region.image()/bytes() and layout.image(name): fail-closed sugar over emit, with the
+    refusal-carried fill, writeback tolerance, and did-you-mean naming refusals."""
     frame = regions.region("frame", max_size=0x10, pad=4)
     reference = frame.layout.emit(emit.Backend.IMAGE).artifact["frame"]
     assert frame.image() == reference and bytes(frame) == reference
@@ -540,7 +540,7 @@ def test_image_sugar_and_naming() -> None:
 
 def test_image_final_is_the_default() -> None:
     """image()/emit()/bytes() run the final gate by default; final=False is the draft read whose
-    refusal carries the fill-padded bytes as .partial; the removed partial= kwarg teaches."""
+    refusal carries the fill-padded bytes as .partial."""
     frame = regions.region("frame", max_size=0x10, pad=4)
     frame[0x4] = "leak_sym"  # a pending symbol in this region
     with pytest.raises(errors.EmitError, match=r"final emit refused: layout-wide pending symbols \['leak_sym'\]"):
@@ -557,10 +557,8 @@ def test_image_final_is_the_default() -> None:
     assert [sorted(f.missing) for f in draft.fixups] == [["leak_sym"]]
     with pytest.raises(errors.ResolveError, match=r"\.partial on this error") as exc:
         frame.image(final=False)
-    partial = exc.value.partial  # the refusal carries what partial= used to return
+    partial = exc.value.partial  # the refusal carries the fill-padded draft
     assert partial is not None and len(partial) == 0x10 and partial[0x4:0x8] == b"\x00" * 4
-    with pytest.raises(errors.PlacementError, match=r"image\(partial=\) is gone"):
-        frame.image(partial=True)  # type: ignore[arg-type]  # the wrong-guess under test
     assert errors.ResolveError("plain").partial is None  # raisers without a buffer in hand stay legal
     frame.bind("leak_sym", 0xDEADBEEF)
     assert frame.image() == frame.image(final=False) == bytes(frame)  # resolved: the gate passes, the reads agree

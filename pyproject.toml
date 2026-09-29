@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cento"
-version = "0.2.0"
-description = "Declarative, fail-closed exploit payload construction."
-readme = "README.md"
+version = "0.2.1"
+description = "Declare, assemble, and check binary exploit payloads."
+readme = "config/README-pypi.md"  # generated from README.md (config/gen_pypi_readme.py): PyPI has no repo behind it, so links go absolute
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 requires-python = ">=3.10"
@@ -84,5 +84,5 @@ plugins.md041.enabled = false
 # Spelling gate (make lint). before.py exhibits are style-frozen (authentic PoC voice, typos
 # included); littel/alpah are deliberate-typo teaching tests; fpr is ex04's floating-point-register block; caf is the ascii-refusal
 # fixture's cafe; re-declare is deliberate hyphenation.
-skip = "./.git,./.venv,./dist,./build,./local,./.superpowers,./assets,*/before.py,*.svg"
+skip = "./.git,./.venv,./config/.venv,./dist,./build,./local,./.superpowers,./assets,*/before.py,*.svg"
 ignore-words-list = "littel,alpah,caf,fpr,re-declare"
